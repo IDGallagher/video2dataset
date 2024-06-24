@@ -40,7 +40,7 @@ class ResolutionSubsampler(Subsampler):
         self.height = height if video_size < 0 else video_size
         self.width = width if video_size < 0 else video_size
         self.video_size = video_size
-        self.encode_format = encode_format
+        self.encode_formats = {"video": encode_format}
 
     def __call__(self, streams, metadata=None):
         video_bytes = streams["video"]
