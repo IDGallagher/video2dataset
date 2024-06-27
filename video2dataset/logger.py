@@ -8,7 +8,7 @@ import json
 import multiprocessing
 import queue
 import traceback
-
+import os
 
 class CappedCounter:
     """Maintain a counter with a capping to avoid memory issues"""
@@ -278,7 +278,7 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
                 stats_files = fs.glob(output_path + "/*.json")
 
                 # filter out files that have an id smaller that are already done
-                stats_files = [f for f in stats_files if int(f.split("/")[-1].split("_")[0]) not in self.done_shards]
+                stats_files = [f for f in stats_files if int(os.path.basename(f).split("_")[0]) not in self.done_shards]
 
                 # get new stats files
                 new_stats_files = set(stats_files) - self.stats_files

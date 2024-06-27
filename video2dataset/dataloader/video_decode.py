@@ -125,63 +125,67 @@ class VideoDecorder(AbstractVideoDecoder):
             return None
 
         additional_info = {}
-        with tempfile.TemporaryDirectory(dir=self.tmpdir) as dirname:
-            fname = os.path.join(dirname, f"file.{extension}")
+        temp_dir = tempfile.TemporaryDirectory(dir=self.tmpdir)
+        try:
+            fname = os.path.join(temp_dir.name, f"file.{extension}")
             with open(fname, "wb") as stream:
                 stream.write(data)
             reader = decord.VideoReader(fname, num_threads=self.num_threads)
 
-        native_fps = int(np.round(reader.get_avg_fps()))
-        if isinstance(self.fps, list):
-            fps_choices = list(filter(lambda x: x <= native_fps, self.fps))
-            if not fps_choices:
-                return None
-            chosen_fps = self.prng.choice(list(fps_choices), 1).item()
+            native_fps = int(np.round(reader.get_avg_fps()))
+            if isinstance(self.fps, list):
+                fps_choices = list(filter(lambda x: x <= native_fps, self.fps))
+                if not fps_choices:
+                    return None
+                chosen_fps = self.prng.choice(list(fps_choices), 1).item()
 
-        elif self.fps == "sample":
-            if native_fps < self.min_fps:
-                return None
-            max_fps = min(native_fps, self.max_fps)
-            additional_info.update({"fps_id": 0})
-            chosen_fps = self.prng.choice(np.arange(self.min_fps, max_fps + 1), 1).item()
-        else:
-            chosen_fps = native_fps
+            elif self.fps == "sample":
+                if native_fps < self.min_fps:
+                    return None
+                max_fps = min(native_fps, self.max_fps)
+                additional_info.update({"fps_id": 0})
+                chosen_fps = self.prng.choice(np.arange(self.min_fps, max_fps + 1), 1).item()
+            else:
+                chosen_fps = native_fps
 
-        fs_id = self.fs_ids[chosen_fps] if self.fs_ids else 0
-        stride = int(np.round(native_fps / chosen_fps))
-        if self.n_frames is None:
-            n_frames = len(reader) // stride
-        else:
-            n_frames = self.n_frames
+            fs_id = self.fs_ids[chosen_fps] if self.fs_ids else 0
+            stride = int(np.round(native_fps / chosen_fps))
+            if self.n_frames is None:
+                n_frames = len(reader) // stride
+            else:
+                n_frames = self.n_frames
 
-        if self.uniformly_sample:
-            additional_info.update({"fps_id": torch.Tensor([fs_id] * self.n_frames).long()})
-            t = len(reader)
-            indices = np.linspace(0, t - 1, self.n_frames)
-            indices = np.clip(indices, 0, t - 1).astype(int)
-            frames, start_frame, pad_start = reader.get_batch(indices), indices[0], len(indices)
-        else:
-            additional_info.update({"fps_id": torch.Tensor([fs_id] * n_frames).long()})
-            frames, start_frame, pad_start = self.get_frames(reader, n_frames, stride, scene_list=scene_list)
-        frames = frames.float().numpy()
+            if self.uniformly_sample:
+                additional_info.update({"fps_id": torch.Tensor([fs_id] * self.n_frames).long()})
+                t = len(reader)
+                indices = np.linspace(0, t - 1, self.n_frames)
+                indices = np.clip(indices, 0, t - 1).astype(int)
+                frames, start_frame, pad_start = reader.get_batch(indices), indices[0], len(indices)
+            else:
+                additional_info.update({"fps_id": torch.Tensor([fs_id] * n_frames).long()})
+                frames, start_frame, pad_start = self.get_frames(reader, n_frames, stride, scene_list=scene_list)
+            frames = frames.float().numpy()
 
-        additional_info["original_height"] = torch.full((frames.shape[0],), fill_value=frames.shape[1]).long()
-        additional_info["original_width"] = torch.full((frames.shape[0],), fill_value=frames.shape[2]).long()
+            additional_info["original_height"] = torch.full((frames.shape[0],), fill_value=frames.shape[1]).long()
+            additional_info["original_width"] = torch.full((frames.shape[0],), fill_value=frames.shape[2]).long()
 
-        pad_masks = torch.zeros((frames.shape[0],))
-        pad_masks[:pad_start] = 1.0
-        additional_info["pad_masks"] = pad_masks
+            pad_masks = torch.zeros((frames.shape[0],))
+            pad_masks[:pad_start] = 1.0
+            additional_info["pad_masks"] = pad_masks
 
-        if self.n_frames is not None and frames.shape[0] < self.n_frames:
-            raise ValueError("Decoded video not long enough, skipping")
+            if self.n_frames is not None and frames.shape[0] < self.n_frames:
+                raise ValueError("Decoded video not long enough, skipping")
 
-        # return compatible with torchvisioin API
-        additional_info.update({"native_fps": chosen_fps if chosen_fps is not None else native_fps})
-        additional_info.update({"start_frame": start_frame})
+            # return compatible with torchvisioin API
+            additional_info.update({"native_fps": chosen_fps if chosen_fps is not None else native_fps})
+            additional_info.update({"start_frame": start_frame})
 
-        if self.return_bytes:
-            additional_info.update({"video_bytes": data})
-        out = (list(frames), additional_info)
+            if self.return_bytes:
+                additional_info.update({"video_bytes": data})
+            out = (list(frames), additional_info)
+        finally:
+            del reader
+        temp_dir.cleanup()
         return out
 
 

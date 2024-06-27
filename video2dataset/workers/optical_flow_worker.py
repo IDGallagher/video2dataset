@@ -130,7 +130,7 @@ class OpticalFlowWorker:
             crop_size=None,
             enforce_additional_keys=[],
             return_always=True,
-            handler=wds.warn_and_continue,
+            handler=wds.reraise_exception,
         )
         count = 0
         for sample in dset:

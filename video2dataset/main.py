@@ -167,7 +167,7 @@ def video2dataset(
         done_shards = set()
     else:
         if incremental_mode == "incremental":
-            done_shards = set(int(x.split("/")[-1].split("_")[0]) for x in fs.glob(output_path + "/*.json"))
+            done_shards = set(int(os.path.basename(x).split("_")[0]) for x in fs.glob(os.path.join(output_path, "*.json")))
         elif incremental_mode == "overwrite":
             fs.rm(output_path, recursive=True)
             fs.mkdir(output_path)

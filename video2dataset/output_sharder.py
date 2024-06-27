@@ -1,7 +1,7 @@
 """Reader is module to read the url list and return shards"""
 import braceexpand
 import fsspec
-
+import os
 
 class OutputSharder:
     """
@@ -34,10 +34,10 @@ class OutputSharder:
         print(f"Found a total of {num_shards} shards!")
 
         if self.input_format == "webdataset":
-            self.shard_ids = [s.split("/")[-1][: -len(".tar")] for s in self.shard_list]
+            self.shard_ids = [os.path.splitext(os.path.basename(s))[0] for s in self.shard_list]
         elif self.input_format == "files":
-            self.shard_ids = [s.split("/")[-1] for s in self.shard_list]
-
+            self.shard_ids = [os.path.basename(s) for s in self.shard_list]
+            
         self.shards = sampler(
             [(s_id, s) for s_id, s in zip(self.shard_ids, self.shard_list) if int(s_id) not in self.done_shards]
         )
