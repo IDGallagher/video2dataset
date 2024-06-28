@@ -26,3 +26,4 @@ Pillow
 accelerate
 bitsandbytes
 scipy
+s3fs
