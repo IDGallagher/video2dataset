@@ -143,7 +143,9 @@ def video2dataset(
     url_list = make_path_absolute(url_list)
 
     logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, local_args)
-    tmp_path = output_folder + "/_tmp"
+
+    tmp_path = os.path.join(output_folder, "_tmp")
+    
     fs, run_tmp_dir = fsspec.core.url_to_fs(tmp_path)
     if not fs.exists(run_tmp_dir):
         fs.mkdir(run_tmp_dir)
@@ -281,7 +283,8 @@ def video2dataset(
     )
     logger_process.join()
     if not called_from_slurm:
-        fs.rm(run_tmp_dir, recursive=True)
+        if fs.exists(run_tmp_dir):
+            fs.rm(run_tmp_dir, recursive=True)
 
 
 def main():
