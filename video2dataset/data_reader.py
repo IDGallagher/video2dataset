@@ -10,7 +10,7 @@ import ffmpeg
 
 def video2audio(video, audio_format, tmp_dir):
     """extract audio from video"""
-    path = f"{tmp_dir}/{str(uuid.uuid4())}.{audio_format}"
+    path = os.path.join(tmp_dir, f"{uuid.uuid4()}.{audio_format}")
     num_streams = len(ffmpeg.probe(video)["streams"])
     ffmpeg_args = {"f": audio_format}
 
@@ -138,7 +138,7 @@ class WebFileDownloader:
             with open(url, "rb") as f:
                 byts = f.read()
 
-        modality_path = f"{self.tmp_dir}/{str(uuid.uuid4())}.{ext}"
+        modality_path = os.path.join(self.tmp_dir, f"{uuid.uuid4()}.{ext}")
         with open(modality_path, "wb") as f:
             f.write(byts)
 
@@ -192,7 +192,7 @@ class YtDlpDownloader:
         )
 
         if self.encode_formats.get("audio", None):
-            audio_path_m4a = f"{self.tmp_dir}/{str(uuid.uuid4())}.m4a"
+            audio_path_m4a = os.path.join(self.tmp_dir, f"{uuid.uuid4()}.m4a")
             ydl_opts = {
                 "outtmpl": audio_path_m4a,
                 "format": audio_fmt_string,
@@ -215,7 +215,7 @@ class YtDlpDownloader:
                 modality_paths["audio"] = audio_path
 
         if self.encode_formats.get("video", None):
-            video_path = f"{self.tmp_dir}/{str(uuid.uuid4())}.mp4"
+            video_path = os.path.join(self.tmp_dir, f"{uuid.uuid4()}.mp4")
             ydl_opts = {
                 "outtmpl": video_path,
                 "format": video_format_string,

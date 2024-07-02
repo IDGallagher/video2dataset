@@ -8,7 +8,7 @@ import pyarrow.parquet as pq
 import pyarrow.csv as csv_pq
 import pyarrow as pa
 import pandas as pd
-
+import os
 
 class InputSharder:
     """
@@ -52,7 +52,7 @@ class InputSharder:
         self.tmp_path = tmp_path
 
         if fs.isdir(url_path):
-            self.input_files = sorted(fs.glob(url_path + "/*." + input_format))
+            self.input_files = sorted(fs.glob(os.path.join(url_path, f"*.{input_format}")))
             if len(self.input_files) == 0:
                 raise ValueError(f"No file found at path {url_path} with extension {input_format}")
         else:
@@ -127,7 +127,7 @@ class InputSharder:
             begin_shard = shard_id * self.number_sample_per_shard
             end_shard = min(number_samples, (1 + shard_id) * self.number_sample_per_shard)
             df_shard = df.slice(begin_shard, end_shard - begin_shard).select(self.column_list)
-            tmp_file = self.tmp_path + f"/{full_shard_id}.feather"
+            tmp_file = os.path.join(self.tmp_path, f"{full_shard_id}.feather")
             for i in range(10):
                 try:
                     fs, tmp_path = fsspec.core.url_to_fs(tmp_file)

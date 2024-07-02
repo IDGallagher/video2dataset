@@ -75,7 +75,7 @@ class ParquetSampleWriter:
                 shard_id=shard_id, oom_shard_count=oom_shard_count
             )
         )
-        output_file = f"{output_folder}/{shard_name}.parquet"
+        output_file = os.path.join(output_folder, f"{shard_name}.parquet")
         self.buffered_parquet_writer = BufferedParquetWriter(output_file, schema, 100)
         self.save_caption = save_caption
         self.encode_formats = encode_formats
@@ -119,10 +119,10 @@ class WebDatasetSampleWriter:
         )
         self.shard_id = shard_id
         fs, output_path = fsspec.core.url_to_fs(output_folder)
-        self.tar_fd = fs.open(f"{output_path}/{shard_name}.tar", "wb")
+        self.tar_fd = fs.open(os.path.join(output_path, f"{shard_name}.tar"), "wb")
         self.tarwriter = wds.TarWriter(self.tar_fd)
         self.save_caption = save_caption
-        self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", schema, 100)
+        self.buffered_parquet_writer = BufferedParquetWriter(os.path.join(output_folder, f"{shard_name}.parquet"), schema, 100)
         self.encode_formats = encode_formats
 
     def write(self, streams, key, caption, meta):
@@ -197,9 +197,9 @@ class TFRecordSampleWriter:
             )
         )
         self.shard_id = shard_id
-        self.tf_writer = TFRecordWriter(f"{output_folder}/{shard_name}.tfrecord")
+        self.tf_writer = TFRecordWriter(os.path.join(output_folder, f"{shard_name}.tfrecord"))
         self.save_caption = save_caption
-        self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", schema, 100)
+        self.buffered_parquet_writer = BufferedParquetWriter(os.path.join(output_folder, f"{shard_name}.parquet"), schema, 100)
         self.encode_formats = encode_formats
 
     def write(self, streams, key, caption, meta):
@@ -284,24 +284,24 @@ class FilesSampleWriter:
             )
         )
         self.shard_id = shard_id
-        self.fs, self.subfolder = fsspec.core.url_to_fs(f"{output_folder}/{shard_name}")
+        self.fs, self.subfolder = fsspec.core.url_to_fs(os.path.join(output_folder, shard_name))
         if not self.fs.exists(self.subfolder):
             self.fs.mkdir(self.subfolder)
         self.save_caption = save_caption
-        self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", schema, 100)
+        self.buffered_parquet_writer = BufferedParquetWriter(os.path.join(output_folder, f"{shard_name}.parquet"), schema, 100)
         self.encode_formats = encode_formats
 
     def write(self, streams, key, caption, meta):
         """Write sample to disk"""
         for modality, stream in streams.items():
             ext = self.encode_formats[modality] if modality in self.encode_formats else modality
-            filename = f"{self.subfolder}/{key}.{ext}"
+            filename = os.path.join(self.subfolder, f"{key}.{ext}")
             with self.fs.open(filename, "wb") as f:
                 f.write(stream)
 
         if self.save_caption:
             caption = str(caption) if caption is not None else ""
-            caption_filename = f"{self.subfolder}/{key}.txt"
+            caption_filename = os.path.join(self.subfolder, f"{key}.txt")
             with self.fs.open(caption_filename, "w") as f:
                 f.write(str(caption))
 
@@ -310,7 +310,7 @@ class FilesSampleWriter:
             if isinstance(v, np.ndarray):
                 meta[k] = v.tolist()
         j = json.dumps(meta, indent=4)
-        meta_filename = f"{self.subfolder}/{key}.json"
+        meta_filename = os.path.join(self.subfolder, f"{key}.json")
         with self.fs.open(meta_filename, "w") as f:
             f.write(j)
 

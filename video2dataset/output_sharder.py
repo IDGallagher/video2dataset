@@ -22,7 +22,7 @@ class OutputSharder:
         fs, url_path = fsspec.core.url_to_fs(shard_list)
 
         if fs.isdir(url_path):
-            self.shard_list = sorted(fs.glob(url_path + "/*.tar"))
+            self.shard_list = sorted(fs.glob(os.path.join(url_path, "*.tar")))
             if "s3://" in shard_list:
                 self.shard_list = ["s3://" + s for s in self.shard_list]
             if len(self.shard_list) == 0:
